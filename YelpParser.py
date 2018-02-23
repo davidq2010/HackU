@@ -69,6 +69,15 @@ def parseYelpData(places, heading = "tel"):
       place['yelp_rating'] = strip(str(business['rating']))
       place['yelp_review_count'] = strip(str(business['review_count']))
       place['yelp_url'] = strip(str(business['url']))
+        
+      companyID = strip(str(business['id']))
+      claimResponse = yelp_api.business_query(id=companyID)
+      place['is_listed_yelp'] = 1
+      if claimResponse['is_claimed'] == True:                      
+        place['is_claimed_yelp'] = 1
+      else:
+        place['is_claimed_yelp'] = 0
+      
     else:
       place['yelp_rating'] = ""
       place['yelp_review_count'] = ""
