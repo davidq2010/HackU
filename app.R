@@ -6,11 +6,10 @@ library(ggplot2)
 library(ggvis)
 library(dplyr)
 
-sample <- read_csv("https://raw.githubusercontent.com/hassannaveed1997/HackU/master/googleData2.csv")
-sample$X1 = NULL
+sample <- read_csv("https://raw.githubusercontent.com/davidq2010/HackU/master/finalData.csv")
 sample <- sample[!duplicated(sample),]
-sample$label1 <- paste("<p><span ><strong><a href=\"",(sample$website),"\"><span>",sample$name,"</span></a></strong></span></p><p>google review:",sample$rating,"</p><p>address:",sample$address,"</p>")
-sample$closest <- abs( (sample$latitude - sample$latitude[1] ) + (sample$longtitude -  sample$longtitude[1]))
+sample$label1 <- paste("<p><span ><strong><a href=\"",(sample$website),"\"><span>",sample$name,"</span></a></strong></span></p><p>google review:",sample$google_rating,"</p><p>address:",sample$address,"</p>")
+sample$closest <- abs( (sample$lat - sample$lat[1] ) + (sample$lng -  sample$lng[1]))
 #have a reactive number called position which tells us the current selection
 
 
@@ -49,7 +48,7 @@ ui <- navbarPage("compareURcompany", id = "nav",
              sidebarPanel(
              conditionalPanel(TRUE,
              checkboxGroupInput("show_vars", "Attributes:",
-                   list("name", "address", "tel", "website", "rating"), selected = list("name", "address", "rating"))
+                   list("name", "address", "tel", "website", "google_rating"), selected = list("name", "address", "rating"))
              ),width = 2
              ),
              mainPanel(
@@ -69,7 +68,7 @@ server <- function(input, output) {
   output$mymap <- renderLeaflet({
     leaflet(sample) %>%
       addTiles()%>%
-      addMarkers(~longtitude,~latitude, popup = ~label1)
+      addMarkers(~lng,~lat, popup = ~label1)
   })
   output$mytable1 <- DT::renderDataTable({
     DT::datatable(sample[, input$show_vars, drop = FALSE])
@@ -84,10 +83,10 @@ server <- function(input, output) {
       longtitude = -76.2913
     }
     {
-      {sample$closest <- abs( (sample$latitude - latitude ) + (sample$longtitude -  longtitude))}
+      {sample$closest <- abs( (sample$lat - latitude ) + (sample$lng -  longtitude))}
       number <- { which(sample$closest == min(sample$closest))}
       sample2 <- subset(sample, closest < 0.1)
-      sample2 <-sample2[order(-sample2$rating),]
+      sample2 <-sample2[order(-sample2$google_rating),]
     }
     DT::datatable(sample2[, input$show_vars, drop = FALSE])
   })
@@ -103,7 +102,7 @@ server <- function(input, output) {
       longtitude = -76.2913
     }
     print(longtitude)
-    number <- {sample$closest <- abs((sample$latitude - latitude ) + (sample$longtitude -  longtitude) )
+    number <- {sample$closest <- abs((sample$lat - latitude ) + (sample$lng -  longtitude) )
     which(sample$closest == min(sample$closest))}
     position({as.numeric(number)})
     sample$label1[number]
