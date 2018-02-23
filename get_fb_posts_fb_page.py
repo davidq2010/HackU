@@ -8,15 +8,6 @@ try:
 except ImportError:
     from urllib2 import urlopen, Request
 
-app_id = "1616760418361922"
-app_secret = "f8a5f48c97a9fffe60933f686d2dc63a"  # DO NOT SHARE WITH ANYONE!
-
-# input date formatted as YYYY-MM-DD
-since_date = "2017-02-22"
-until_date = "2018-02-22"
-
-access_token = app_id + "|" + app_secret
-
 
 def request_until_succeed(url):
     req = Request(url)
@@ -123,14 +114,19 @@ def processFacebookPageFeedStatus(status):
             status_published, num_reactions, num_comments, num_shares)
 
 
-def scrapeFacebookPageFeedStatus(page_id, access_token, since_date, until_date):
-    with open('{}_facebook_statuses.csv'.format(page_id), 'w') as file:
-        w = csv.writer(file)
-        w.writerow(["status_id", "status_message", "link_name", "status_type",
-                    "status_link", "status_published", "num_reactions",
-                    "num_comments", "num_shares", "num_likes", "num_loves",
-                    "num_wows", "num_hahas", "num_sads", "num_angrys",
-                    "num_special"])
+def scrapeFacebookPageFeedStatus(page_id1, access_token, since_date, until_date):
+    total = 0 
+    count = 0
+    graph = GraphAPI('EAACEdEose0cBAPtLJurRzWQuf3L0jzczs4OAXnaseF8MKMnAAJKW3zAH1HaepKj7FeC28WdN7v6CNyzLDfj2GhhlxGnpZB3TZA3O2TE89RsPTDTCcVYxZBFrx1ZBE3NnqQuFFwXPHMnZAEG6khLIZCRk50STZB52ULOZBoQLVhwYyyJ3sZCrejdcFGDY3Y0DP5iDfOPqqlZCuXsAZDZD')
+    events = graph.search(page_id1, 'page', page=True)
+
+    for col in events:
+        for rec in col['data']:
+            page_id =rec['id']
+            
+    #print(page_id)
+
+    with open('{}_facebook_statuses.csv'.format(page_id1), 'w') as file:
 
         has_next_page = True
         num_processed = 0
@@ -138,13 +134,21 @@ def scrapeFacebookPageFeedStatus(page_id, access_token, since_date, until_date):
         after = ''
         base = "https://graph.facebook.com/v2.9"
         node = "/{}/posts".format(page_id)
+        node2 = "/{}".format(page_id)
         parameters = "/?limit={}&access_token={}".format(100, access_token)
         since = "&since={}".format(since_date) if since_date \
             is not '' else ''
         until = "&until={}".format(until_date) if until_date \
             is not '' else ''
 
-        print("Scraping {} Facebook Page: {}\n".format(page_id, scrape_starttime))
+        #print("Scraping {} Facebook Page: {}\n".format(page_id, scrape_starttime))
+
+
+        base_url1 = base + node2 + parameters + "&fields=name,fan_count"
+        total_like = json.loads(request_until_succeed(base_url1))
+
+        #print(int(total_like["fan_count"]))
+        total = int(total_like["fan_count"])
 
         while has_next_page:
             after = '' if after is '' else "&after={}".format(after)
@@ -154,21 +158,22 @@ def scrapeFacebookPageFeedStatus(page_id, access_token, since_date, until_date):
             statuses = json.loads(request_until_succeed(url))
             reactions = getReactionsForStatuses(base_url)
 
+
             for status in statuses['data']:
 
                 # Ensure it is a status with the expected metadata
                 if 'reactions' in status:
                     status_data = processFacebookPageFeedStatus(status)
                     reactions_data = reactions[status_data[0]]
-
+                    #print(str(status_data[6]))
+                    
+                    count = count + int(status_data[6])
                     # calculate thankful/pride through algebra
                     num_special = status_data[6] - sum(reactions_data)
-                    w.writerow(status_data + reactions_data + (num_special,))
+                    #w.writerow(status_data + reactions_data + (num_special,))
 
                 num_processed += 1
-                if num_processed % 100 == 0:
-                    print("{} Statuses Processed: {}".format
-                          (num_processed, datetime.datetime.now()))
+                    
 
             # if there is no next page, we're done.
             if 'paging' in statuses:
@@ -178,17 +183,39 @@ def scrapeFacebookPageFeedStatus(page_id, access_token, since_date, until_date):
 
         print("\nDone!\n{} Statuses Processed in {}".format(
               num_processed, datetime.datetime.now() - scrape_starttime))
+      
+        return count, total
+
+
+
+
+
 
 
 if __name__ == '__main__':
 
-    graph = GraphAPI('EAAWZBb15sYkIBAOMaLu7xSSdYRSU7nSKsozM05O9ZAIJZB58ZApDfxhbLmKgMsk2Un3X3yEJPtG7zP39jWZBP9rUaGQ3m8meHdQHEqzdGylpDkZB7HGCOOhB9Xq8jIepYJg3GmdEQpE88Ua2SACvdnPcz7PPoewnMZCtziQNSrp9ZBD4IppTnJKlaFkASlA6jQ4ZD')
-    events = graph.search('Coleman Powersports- Falls Church', 'page', page=True)
+    app_id = "1616760418361922"
+    app_secret = "f8a5f48c97a9fffe60933f686d2dc63a"  # DO NOT SHARE WITH ANYONE!
 
-    for col in events:
-        for rec in col['data']:
-            id1 =rec['id']
+    # input date formatted as YYYY-MM-DD
+    since_date = "2017-02-22"
+    until_date = "2018-02-22"
+    
+    access_token = app_id + "|" + app_secret
+    
+    
 
-    print(id1)
+    with open('Sample Data.csv') as csvfile:
+        readCSV = csv.reader(csvfile, delimiter=',')
+        for row in readCSV:
+            motocompany =str((row[0]))
+            print(motocompany)
+            count, total =scrapeFacebookPageFeedStatus(motocompany, access_token, since_date, until_date)
+            print(count)
+            print(total)
 
-    scrapeFacebookPageFeedStatus(id1, access_token, since_date, until_date)
+
+    # number of  counting / user numbers
+    #'Coleman Powersports- Falls Church'
+
+
